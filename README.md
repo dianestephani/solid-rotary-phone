@@ -27,6 +27,7 @@ A portfolio-level CRM automation backend built to demonstrate production-grade N
 | SMS | Twilio | Outbound SMS + inbound webhook |
 | Email | SendGrid | Outbound email + inbound parse webhook |
 | Validation | Zod | Request bodies, webhook payloads, env vars |
+| Testing | Jest + ts-jest | Unit tests for validation logic |
 | Frontend | Next.js 14 | App Router — in progress |
 | Package manager | pnpm 7+ | Workspaces monorepo |
 
@@ -54,24 +55,31 @@ solid-rotary-phone/
 ## Data model
 
 ```text
-Contact
-  id          cuid (PK)
-  email       unique
-  name        optional
-  phone       optional
+Lead
+  id              uuid (PK)
+  name
+  email           indexed
+  phone           indexed, E.164 format
+  status          "NEW" | "IN_SEQUENCE" | "RESPONDED" | "BOOKED" | "CLOSED"  (indexed)
+  sequenceDay     integer, default 0
+  lastContactedAt nullable datetime
   createdAt
   updatedAt
 
-Outreach
-  id          cuid (PK)
-  contactId   FK → Contact (cascade delete)
-  channel     "EMAIL" | "SMS"
-  status      "PENDING" | "SENT" | "FAILED" | "REPLIED"
-  subject     optional (email only)
-  body
-  sentAt      nullable — set when actually delivered
+InboundEmail
+  id        uuid (PK)
+  subject
+  rawText
+  processed boolean, default false
+  error     nullable — set if processing failed
   createdAt
-  updatedAt
+
+MessageLog
+  id        uuid (PK)
+  leadId    FK → Lead (cascade delete, indexed)
+  direction "OUTBOUND" | "INBOUND"  (indexed)
+  body
+  sentAt
 ```
 
 ---
@@ -133,6 +141,55 @@ curl http://localhost:3001/health
 
 ---
 
+## Testing
+
+### Running the unit tests
+
+```bash
+pnpm -w run test
+```
+
+Or scoped to the API package directly:
+
+```bash
+pnpm --filter api test
+```
+
+Additional modes:
+
+```bash
+pnpm --filter api test:watch     # re-runs on file changes
+pnpm --filter api test:coverage  # generates a coverage report
+```
+
+### What is tested
+
+Unit tests live in [`apps/api/src/__tests__/`](apps/api/src/__tests__/).
+
+| File | What it tests | Tests |
+|---|---|---|
+| `env.test.ts` | All 9 Zod validation rules in `env-schema.ts` | 45 |
+
+### Testing philosophy
+
+Only logic with real branching and failure modes has unit tests. Boilerplate wiring (Express setup, Prisma singleton), type-only files, and one-liner handlers are not unit tested — they are covered implicitly when integration tests are added later.
+
+### env-schema.ts architecture note
+
+`env.ts` calls `envSchema.parse(process.env)` at module load time, which is intentional for production (fail fast on startup). To keep tests isolated from `process.env`, the schema definition was extracted into [`env-schema.ts`](apps/api/src/env-schema.ts) — a side-effect-free file that can be imported anywhere without triggering a parse. Tests import the schema directly and call `safeParse()` with controlled inputs.
+
+### Smoke testing the database
+
+To verify the Prisma client and SQLite database end-to-end:
+
+```bash
+pnpm -w run db:smoke
+```
+
+This creates real rows, verifies relations and indexes, tests cascade delete, then cleans up. Safe to run repeatedly.
+
+---
+
 ## Environment variables
 
 All variables are validated at startup via Zod. The server will not start if any required value is missing or malformed.
@@ -170,16 +227,17 @@ No application code changes required.
 ## Planned features
 
 - [x] Monorepo scaffold with pnpm workspaces
-- [x] Prisma schema — Contact + Outreach models
+- [x] Prisma schema — Lead, InboundEmail, MessageLog models
 - [x] SQLite for local development, PostgreSQL-portable schema
 - [x] Zod-validated environment variables
-- [ ] Contacts CRUD API (`GET`, `POST`, `PATCH`, `DELETE /contacts`)
+- [x] Jest unit test suite — 45 tests, env validation coverage
+- [ ] Leads CRUD API (`GET`, `POST`, `PATCH`, `DELETE /leads`)
 - [ ] Outreach dispatch — send SMS via Twilio, email via SendGrid
 - [ ] Twilio inbound SMS webhook handler
 - [ ] SendGrid inbound parse webhook handler
 - [ ] Outreach status tracking and reply logging
 - [ ] Authentication (API key or JWT — TBD)
-- [ ] Next.js dashboard — contacts list, outreach composer, status table
+- [ ] Next.js dashboard — leads list, outreach composer, message history
 - [ ] CI pipeline (GitHub Actions)
 - [ ] Production deployment (Railway or Fly.io — TBD)
 
@@ -192,3 +250,5 @@ Design decisions, tradeoffs, and workflow notes are documented in [`claude-conve
 | File | Topic |
 |---|---|
 | [`01-monorepo-setup.md`](claude-conversations/01-monorepo-setup.md) | Monorepo initialization, TypeScript config, SQLite setup, shared types |
+| [`02-prisma-schema.md`](claude-conversations/02-prisma-schema.md) | Prisma schema design, enum strategy, migration workflow, smoke testing |
+| [`03-unit-tests.md`](claude-conversations/03-unit-tests.md) | Jest setup, env validation tests, env-schema refactor, DATABASE_URL bug fix |

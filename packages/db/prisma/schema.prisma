@@ -7,32 +7,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Contact {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ---------------------------------------------------------------------------
+// ENUM STRATEGY
+// ---------------------------------------------------------------------------
+// Prisma 5 does not support the `enum` keyword with the SQLite provider —
+// the schema validator rejects it entirely. Enum values are stored as String
+// columns here and enforced at the application layer (Zod + TypeScript unions
+// in @crm/types). When migrating to PostgreSQL, these columns become native
+// PostgreSQL enum types via a single Prisma migration — no application code
+// changes required.
+//
+// Valid values are documented alongside each field below.
+// ---------------------------------------------------------------------------
 
-  outreaches Outreach[]
+model Lead {
+  id              String    @id @default(uuid())
+  name            String
+  email           String
+  phone           String
+  // status: "NEW" | "IN_SEQUENCE" | "RESPONDED" | "BOOKED" | "CLOSED"
+  status          String    @default("NEW")
+  sequenceDay     Int       @default(0)
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  messageLogs MessageLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
 }
 
-model Outreach {
-  id        String    @id @default(cuid())
-  contactId String
-  // channel: "EMAIL" | "SMS"
-  // status:  "PENDING" | "SENT" | "FAILED" | "REPLIED"
-  // Stored as String here for SQLite compatibility.
-  // Valid values are enforced by Zod in the API layer and typed in @crm/types.
-  // When migrating to PostgreSQL, these become native enum columns — see MIGRATION.md.
-  channel   String
-  status    String    @default("PENDING")
-  subject   String?
-  body      String
-  sentAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model InboundEmail {
+  id        String   @id @default(uuid())
+  subject   String
+  rawText   String
+  // processed: tracks whether this email has been parsed and acted on
+  processed Boolean  @default(false)
+  // error: populated if processing failed, null on success
+  error     String?
+  createdAt DateTime @default(now())
+}
 
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+model MessageLog {
+  id      String   @id @default(uuid())
+  leadId  String
+  // direction: "OUTBOUND" | "INBOUND"
+  direction String
+  body    String
+  sentAt  DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([direction])
 }

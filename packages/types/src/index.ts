@@ -1,59 +1,99 @@
-// API response envelope — every API response wraps data in this shape.
-// This lets the frontend reliably check for errors without inspecting HTTP status codes alone.
+// ---------------------------------------------------------------------------
+// API response envelope
+// Every API response is wrapped in this shape so the frontend can reliably
+// distinguish success from error without inspecting HTTP status codes alone.
+// ---------------------------------------------------------------------------
 export type ApiResponse<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-// Contact API shapes
-export interface CreateContactRequest {
+// ---------------------------------------------------------------------------
+// Lead
+// ---------------------------------------------------------------------------
+
+// These string literal union types mirror the values stored in the database.
+// They are enforced at the application layer (Zod) since SQLite does not
+// support native enum types. On PostgreSQL migration these become CHECK
+// constraints or native enums — no application code changes required.
+export type LeadStatus =
+  | "NEW"
+  | "IN_SEQUENCE"
+  | "RESPONDED"
+  | "BOOKED"
+  | "CLOSED";
+
+export interface CreateLeadRequest {
+  name: string;
   email: string;
+  phone: string; // E.164 format, e.g. +15551234567
+  status?: LeadStatus;
+}
+
+export interface UpdateLeadRequest {
   name?: string;
+  email?: string;
   phone?: string;
+  status?: LeadStatus;
+  sequenceDay?: number;
+  lastContactedAt?: string; // ISO 8601
 }
 
-export interface ContactResponse {
+export interface LeadResponse {
   id: string;
+  name: string;
   email: string;
-  name: string | null;
-  phone: string | null;
-  createdAt: string; // ISO 8601 — dates are serialized as strings over HTTP
+  phone: string;
+  status: LeadStatus;
+  sequenceDay: number;
+  lastContactedAt: string | null; // ISO 8601, null if never contacted
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Outreach API shapes
-export type OutreachChannel = "EMAIL" | "SMS";
-export type OutreachStatus = "PENDING" | "SENT" | "FAILED" | "REPLIED";
+// ---------------------------------------------------------------------------
+// InboundEmail
+// ---------------------------------------------------------------------------
 
-export interface CreateOutreachRequest {
-  contactId: string;
-  channel: OutreachChannel;
-  subject?: string;
-  body: string;
-}
-
-export interface OutreachResponse {
+export interface InboundEmailResponse {
   id: string;
-  contactId: string;
-  channel: OutreachChannel;
-  status: OutreachStatus;
-  subject: string | null;
-  body: string;
-  sentAt: string | null;
+  subject: string;
+  rawText: string;
+  processed: boolean;
+  error: string | null;
   createdAt: string;
 }
 
-// Webhook payload shapes (for validation with Zod in the api)
+// ---------------------------------------------------------------------------
+// MessageLog
+// ---------------------------------------------------------------------------
+
+export type MessageDirection = "OUTBOUND" | "INBOUND";
+
+export interface MessageLogResponse {
+  id: string;
+  leadId: string;
+  direction: MessageDirection;
+  body: string;
+  sentAt: string; // ISO 8601
+}
+
+// ---------------------------------------------------------------------------
+// Webhook payloads
+// Used for Zod validation in the API before touching the database.
+// ---------------------------------------------------------------------------
+
 export interface SendGridInboundPayload {
   from: string;
   to: string;
   subject: string;
   text?: string;
   html?: string;
-  "envelope": string; // JSON string from SendGrid
+  envelope: string; // JSON string from SendGrid
 }
 
 export interface TwilioSmsPayload {
-  From: string;
-  To: string;
+  From: string; // E.164 sender number
+  To: string;   // Your Twilio number
   Body: string;
   MessageSid: string;
 }

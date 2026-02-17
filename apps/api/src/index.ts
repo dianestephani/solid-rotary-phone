@@ -2,6 +2,7 @@ import "dotenv/config";
 import { env } from "./env.js"; // .js extension required with NodeNext module resolution
 import express from "express";
 import { prisma } from "@crm/db";
+import { leadsRouter } from "./routes/leads.js";
 
 const app = express();
 const PORT = env.PORT;
@@ -13,9 +14,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Placeholder: routes will be added as separate modules
-// e.g. app.use("/contacts", contactsRouter);
-// e.g. app.use("/webhooks", webhooksRouter);
+app.use("/leads", leadsRouter);
 
 async function start() {
   try {
