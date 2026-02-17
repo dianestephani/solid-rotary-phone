@@ -1,0 +1,15 @@
+{
+  "name": "solid-rotary-phone",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter '*' build",
+    "typecheck": "pnpm --filter '*' typecheck",
+    "lint": "pnpm --filter '*' lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

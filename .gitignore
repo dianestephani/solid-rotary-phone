@@ -137,3 +137,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# pnpm virtual store (auto-generated, not needed in git)
+# pnpm-lock.yaml is intentionally committed for reproducible installs
+
+# SQLite local development database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
