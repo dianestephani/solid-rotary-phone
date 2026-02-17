@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -19,27 +19,20 @@ model Contact {
 }
 
 model Outreach {
-  id        String         @id @default(cuid())
+  id        String    @id @default(cuid())
   contactId String
-  channel   OutreachChannel
-  status    OutreachStatus @default(PENDING)
+  // channel: "EMAIL" | "SMS"
+  // status:  "PENDING" | "SENT" | "FAILED" | "REPLIED"
+  // Stored as String here for SQLite compatibility.
+  // Valid values are enforced by Zod in the API layer and typed in @crm/types.
+  // When migrating to PostgreSQL, these become native enum columns — see MIGRATION.md.
+  channel   String
+  status    String    @default("PENDING")
   subject   String?
   body      String
   sentAt    DateTime?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-}
-
-enum OutreachChannel {
-  EMAIL
-  SMS
-}
-
-enum OutreachStatus {
-  PENDING
-  SENT
-  FAILED
-  REPLIED
 }
