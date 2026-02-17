@@ -3,6 +3,7 @@ import { env } from "./env.js"; // .js extension required with NodeNext module r
 import express from "express";
 import { prisma } from "@crm/db";
 import { leadsRouter } from "./routes/leads.js";
+import { webhooksRouter } from "./routes/webhooks.js";
 
 const app = express();
 const PORT = env.PORT;
@@ -15,6 +16,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/leads", leadsRouter);
+app.use("/webhooks", webhooksRouter);
 
 async function start() {
   try {
