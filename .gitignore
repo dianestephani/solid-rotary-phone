@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# pnpm virtual store (auto-generated, not needed in git)
+# pnpm-lock.yaml is intentionally committed for reproducible installs
