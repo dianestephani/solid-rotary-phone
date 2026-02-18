@@ -172,6 +172,7 @@ Unit tests live in [`apps/api/src/__tests__/`](apps/api/src/__tests__/).
 | `leads-schema.test.ts` | `createLeadSchema` and `updateLeadSchema` — all fields, all statuses, edge cases | 44 |
 | `inbound-email-schema.test.ts` | `inboundEmailSchema` — all SendGrid payload fields, body content rules | 19 |
 | `verify-webhook-secret.test.ts` | Webhook secret middleware — valid, wrong, missing header, missing env var | 7 |
+| `lead-parser.test.ts` | `parseLeadFromEmail` and `normalizePhone` — regex extraction, phone normalization, structured errors | 28 |
 
 ### Testing philosophy
 
@@ -233,9 +234,10 @@ No application code changes required.
 - [x] Prisma schema — Lead, InboundEmail, MessageLog models
 - [x] SQLite for local development, PostgreSQL-portable schema
 - [x] Zod-validated environment variables
-- [x] Jest unit test suite — 115 tests across env, leads, and webhook schemas
+- [x] Jest unit test suite — 143 tests across env, leads, webhooks, and parser
 - [x] Leads CRUD API (`GET`, `POST`, `PATCH`, `DELETE /leads`)
 - [x] SendGrid inbound email webhook (`POST /webhooks/inbound-email`)
+- [x] Email parsing service — extracts lead from forwarded email, normalizes phone to E.164, idempotent upsert
 - [ ] Outreach dispatch — send SMS via Twilio, email via SendGrid
 - [ ] Twilio inbound SMS webhook handler
 - [ ] Outreach status tracking and reply logging
@@ -256,3 +258,4 @@ Design decisions, tradeoffs, and workflow notes are documented in [`claude-conve
 | [`02-prisma-schema.md`](claude-conversations/02-prisma-schema.md) | Prisma schema design, enum strategy, migration workflow, smoke testing |
 | [`03-unit-tests.md`](claude-conversations/03-unit-tests.md) | Jest setup, env validation tests, env-schema refactor, DATABASE_URL bug fix |
 | [`04-inbound-email-webhook.md`](claude-conversations/04-inbound-email-webhook.md) | Inbound email webhook, controller/service architecture, middleware design |
+| [`05-email-parsing-and-lead-creation.md`](claude-conversations/05-email-parsing-and-lead-creation.md) | Lead parser service, phone normalization, idempotency strategy, migration |
