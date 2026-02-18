@@ -173,6 +173,7 @@ Unit tests live in [`apps/api/src/__tests__/`](apps/api/src/__tests__/).
 | `inbound-email-schema.test.ts` | `inboundEmailSchema` — all SendGrid payload fields, body content rules | 19 |
 | `verify-webhook-secret.test.ts` | Webhook secret middleware — valid, wrong, missing header, missing env var | 7 |
 | `lead-parser.test.ts` | `parseLeadFromEmail` and `normalizePhone` — regex extraction, phone normalization, structured errors | 28 |
+| `sms.service.test.ts` | `sendSms` — success path, Twilio failure, DB failure, `SmsSendError` identity | 18 |
 
 ### Testing philosophy
 
@@ -234,11 +235,12 @@ No application code changes required.
 - [x] Prisma schema — Lead, InboundEmail, MessageLog models
 - [x] SQLite for local development, PostgreSQL-portable schema
 - [x] Zod-validated environment variables
-- [x] Jest unit test suite — 143 tests across env, leads, webhooks, and parser
+- [x] Jest unit test suite — 161 tests across env, leads, webhooks, parser, and SMS service
 - [x] Leads CRUD API (`GET`, `POST`, `PATCH`, `DELETE /leads`)
 - [x] SendGrid inbound email webhook (`POST /webhooks/inbound-email`)
 - [x] Email parsing service — extracts lead from forwarded email, normalizes phone to E.164, idempotent upsert
-- [ ] Outreach dispatch — send SMS via Twilio, email via SendGrid
+- [x] Twilio SMS service — `sendSms()` wrapper with `SmsSendError`, outbound `MessageLog` write
+- [ ] Outreach dispatch — trigger SMS from a route or scheduled job
 - [ ] Twilio inbound SMS webhook handler
 - [ ] Outreach status tracking and reply logging
 - [ ] Authentication (API key or JWT — TBD)
@@ -259,3 +261,4 @@ Design decisions, tradeoffs, and workflow notes are documented in [`claude-conve
 | [`03-unit-tests.md`](claude-conversations/03-unit-tests.md) | Jest setup, env validation tests, env-schema refactor, DATABASE_URL bug fix |
 | [`04-inbound-email-webhook.md`](claude-conversations/04-inbound-email-webhook.md) | Inbound email webhook, controller/service architecture, middleware design |
 | [`05-email-parsing-and-lead-creation.md`](claude-conversations/05-email-parsing-and-lead-creation.md) | Lead parser service, phone normalization, idempotency strategy, migration |
+| [`06-twilio-sms-service.md`](claude-conversations/06-twilio-sms-service.md) | Twilio client singleton, `sendSms()` service, `SmsSendError`, Jest mock stability |

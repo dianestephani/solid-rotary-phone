@@ -72,10 +72,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.TWILIO_PHONE_NUMBER = "+18005550000";
 
-  // Re-resolve the mock fns after clearAllMocks resets them
-  const fakeClient = (getTwilioClient as jest.Mock)();
-  mockMessagesCreate = fakeClient.messages.create as jest.Mock;
-  mockMessageLogCreate = (prisma.messageLog.create as jest.Mock);
+  // Create a fresh stable fn for this test and tell getTwilioClient to always
+  // return the same client object. This ensures the messages.create fn that
+  // sendSms() receives internally is the same reference we assert against here.
+  mockMessagesCreate = jest.fn();
+  (getTwilioClient as jest.Mock).mockReturnValue({
+    messages: { create: mockMessagesCreate },
+  });
+  mockMessageLogCreate = prisma.messageLog.create as jest.Mock;
 
   // Default: Twilio succeeds
   mockMessagesCreate.mockResolvedValue({ sid: TWILIO_SID });
