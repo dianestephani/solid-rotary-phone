@@ -34,7 +34,10 @@ model Lead {
 
   messageLogs MessageLog[]
 
-  @@index([email])
+  // email is unique — used as the idempotency key when creating leads from
+  // inbound emails. Upsert on email means the same lead is never duplicated
+  // even if the same forwarded email is delivered more than once.
+  @@unique([email])
   @@index([phone])
   @@index([status])
 }
